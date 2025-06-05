@@ -1,10 +1,80 @@
-name: Simple Test Workflow
-on: workflow_dispatch # Make sure this is present to allow manual run
+name: Weekly Clover Docs Check
+
+on:
+  schedule:
+    - cron: "0 2 * * 0" # Runs every Sunday at 2 AM UTC (Adjust as needed)
+  workflow_dispatch: # Allows manual triggering
+
 jobs:
-  test_job:
+  run_crawler:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit results back to the repo
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Say Hello
-        run: echo "Hello World! GitHub Actions is running."
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18" # Or a newer LTS version
+
+      - name: Install SiteOne Crawler
+        run: npm install -g @siteone/crawler-cli
+
+      - name: Create directories for results and temporary storage
+        run: |
+          mkdir -p crawler-results
+          mkdir -p crawler-temp-storage # For --result-storage=file
+
+      - name: Run SiteOne Crawler
+        id: crawl # Give the step an id to access its outputs if needed later
+        run: |
+          siteone-crawler \
+            --url="https://docs.clover.com" \
+            --output-html-report="./crawler-results/clover_docs_report.html" \
+            --result-storage=file \
+            --result-storage-dir="./crawler-temp-storage" \
+            --timeout=15 \
+            --max-visited-urls=10000 \
+            --memory-limit="3072M" \
+            --ignore-robots-txt=false \
+            # --disable-javascript \
+            # --disable-styles \
+            # --disable-images \
+            # --include-regex="^https://docs\.clover\.com/docs/.*" \
+            # --ignore-regex="/(api|media)/" \
+            # --max-queue-length=20000 \
+          echo "Crawl finished. Report generated at ./crawler-results/clover_docs_report.html"
+        continue-on-error: true # Allow job to continue to commit results even if crawler finds issues (non-zero exit code)
+
+      - name: Check if report was generated
+        id: check_report
+        run: |
+          if [ -f "./crawler-results/clover_docs_report.html" ]; then
+            echo "report_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "report_exists=false" >> $GITHUB_OUTPUT
+            echo "HTML report not found!"
+          fi
+
+      - name: Commit and push results
+        if: steps.check_report.outputs.report_exists == 'true' # Only run if report exists
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add ./crawler-results/clover_docs_report.html
+          # Check if there are changes to commit
+          if ! git diff --staged --quiet; then
+            git commit -m "Weekly crawl results for docs.clover.com ($(date +'%Y-%m-%d'))"
+            git push
+          else
+            echo "No changes in the report to commit."
+          fi
+
+      - name: Handle crawl failure or no report
+        if: steps.check_report.outputs.report_exists == 'false'
+        run: |
+          echo "SiteOne Crawler did not generate a report. Check logs from the 'Run SiteOne Crawler' step."
+          # Optionally, you could fail the workflow here if a missing report is critical
+          # exit 1
