@@ -40,28 +40,18 @@ jobs:
             exit 1
           fi
           cd "$EXTRACTED_DIR"
-          ./crawler \
-            --url="https://docs.clover.com" \
-            --output-html-report="../docs/index.html" \
-            --result-storage=file \
-            --result-storage-dir="../crawler-temp-storage" \
-            --workers=3 \
-            --disable-javascript \ 
-            --max-reqs-per-sec=5 \
-            --timeout=15 \
-            --max-visited-urls=10000 \
-            --ignore-robots-txt=false
-        continue-on-error: true
+          # All arguments are now on a single line to prevent syntax errors
+          ./crawler --url="https://docs.clover.com" --output-html-report="../docs/index.html" --result-storage=file --result-storage-dir="../crawler-temp-storage" --disable-javascript --workers=3 --max-reqs-per-sec=5 --timeout=15 --max-visited-urls=10000 --ignore-robots-txt=false
 
       - name: Inject Date into Report
-        if: steps.crawl.outcome == 'success' && hashFiles('docs/index.html') != ''
+        # This step will only run if the crawler step completes successfully
+        if: success()
         run: |
           # This command adds a title with the date at the top of the HTML body
           sed -i 's|<body>|<body>\n<h1 style="text-align:center;font-family:sans-serif;">Report Generated on ${{ env.CURRENT_DATE }}</h1>|' ./docs/index.html
 
       - name: Commit and push results
         run: |
-          # Only proceed if the report exists
           if [ ! -f "./docs/index.html" ]; then
             echo "index.html not found. Skipping commit."
             exit 0
@@ -69,7 +59,6 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add ./docs/index.html
-          # Check if there are changes to commit before proceeding
           if ! git diff --staged --quiet; then
             git commit -m "Weekly crawl results for ${{ env.CURRENT_DATE }}"
             git push
