@@ -55,6 +55,7 @@ jobs:
             --result-storage=file \
             --result-storage-dir="../crawler-temp-storage" \
             --workers=3 \
+            --disable-javascript \
             --max-reqs-per-sec=5 \
             --timeout=15 \
             --max-visited-urls=10000 \
