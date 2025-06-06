@@ -23,7 +23,6 @@ jobs:
         id: crawl
         run: |
           # Step 1: Get the latest version tag from the GitHub API
-          # This makes the workflow automatically use the newest version.
           LATEST_TAG=$(curl -s "https://api.github.com/repos/janreges/siteone-crawler/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
           if [ -z "$LATEST_TAG" ]; then
             echo "Failed to fetch latest version tag from GitHub API. Exiting."
@@ -49,19 +48,18 @@ jobs:
           echo "Crawler extracted to directory: $EXTRACTED_DIR"
 
           # Step 5: Run the crawler from within the new directory
-          # Note: Paths to results are now relative from the new directory, e.g., ../../crawler-results
           cd "$EXTRACTED_DIR"
           ./crawler \
             --url="https://docs.clover.com" \
-            --output-html-report="../../crawler-results/clover_docs_report.html" \
+            --output-html-report="../crawler-results/clover_docs_report.html" \
             --result-storage=file \
-            --result-storage-dir="../../crawler-temp-storage" \
+            --result-storage-dir="../crawler-temp-storage" \
             --workers=3 \
             --max-reqs-per-sec=5 \
             --timeout=15 \
             --max-visited-urls=10000 \
             --ignore-robots-txt=false
-        continue-on-error: true # Allow job to continue to commit results even if crawler finds issues
+        continue-on-error: true
 
       - name: Check if report was generated
         id: check_report
