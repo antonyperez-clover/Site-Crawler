@@ -39,7 +39,7 @@ jobs:
           cd "$EXTRACTED_DIR"
           ./crawler \
             --url="https://docs.clover.com" \
-            --output-html-report="../docs/clover_docs_report.html" \
+            --output-html-report="../docs/index.html" \
             --result-storage=file \
             --result-storage-dir="../crawler-temp-storage" \
             --workers=3 \
