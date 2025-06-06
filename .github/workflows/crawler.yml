@@ -16,7 +16,7 @@ jobs:
 
       - name: Create output directories
         run: |
-          mkdir -p docs # <-- CHANGED
+          mkdir -p docs
           mkdir -p crawler-temp-storage
 
       - name: Download and Run SiteOne Crawler
@@ -39,7 +39,7 @@ jobs:
           cd "$EXTRACTED_DIR"
           ./crawler \
             --url="https://docs.clover.com" \
-            --output-html-report="../docs/clover_docs_report.html" \ # <-- CHANGED
+            --output-html-report="../docs/clover_docs_report.html" \
             --result-storage=file \
             --result-storage-dir="../crawler-temp-storage" \
             --workers=3 \
@@ -53,7 +53,7 @@ jobs:
       - name: Check if report was generated
         id: check_report
         run: |
-          if [ -f "./docs/clover_docs_report.html" ]; then # <-- CHANGED
+          if [ -f "./docs/clover_docs_report.html" ]; then
             echo "report_exists=true" >> $GITHUB_OUTPUT
           else
             echo "report_exists=false" >> $GITHUB_OUTPUT
@@ -65,7 +65,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add ./docs/clover_docs_report.html # <-- CHANGED
+          git add ./docs/clover_docs_report.html
           if ! git diff --staged --quiet; then
             git commit -m "Weekly crawl results for docs.clover.com ($(date +'%Y-%m-%d'))"
             git push
